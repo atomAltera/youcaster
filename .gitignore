@@ -1,0 +1,6 @@
+.idea
+.fleet
+.run
+tmp
+*.private.env.json
+Makefile

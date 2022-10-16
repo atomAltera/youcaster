@@ -1,0 +1,5 @@
+### Get video details by ID
+GET https://www.googleapis.com/youtube/v3/videos?key={{api_key}}&part=snippet,contentDetails&id=imTWnSBecZE
+
+### Get video details by URL
+https://www.googleapis.com/youtube/v3/search?key={{api_key}}&part=snippet&q=python
