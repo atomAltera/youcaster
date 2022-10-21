@@ -18,7 +18,7 @@ func NewURLParser() *URLParser {
 	}
 }
 
-func (p *URLParser) Parse(url string) (string, error) {
+func (p *URLParser) ExtractID(url string) (string, error) {
 	for _, re := range p.res {
 		if re.MatchString(url) {
 			matches := re.FindStringSubmatch(url)

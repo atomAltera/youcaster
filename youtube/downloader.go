@@ -29,7 +29,7 @@ func NewDownloader(l logger.Logger, dir string) (*Downloader, error) {
 	}, nil
 }
 
-func (d *Downloader) Download(ctx context.Context, url string, filename string) error {
+func (d *Downloader) Download(ctx context.Context, url string, filename string) (int64, error) {
 	dest := path.Join(d.dir, filename)
 
 	script := fmt.Sprintf(ytDlpTemplate, url, dest)
@@ -43,8 +43,15 @@ func (d *Downloader) Download(ctx context.Context, url string, filename string) 
 	d.log.Infof("executing command: %s", script)
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to execute command: %v", err)
+		_ = os.Remove(dest)
+
+		return 0, fmt.Errorf("failed to execute command: %v", err)
 	}
 
-	return nil
+	s, err := os.Stat(dest)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get file size of %s: %w", dest, err)
+	}
+
+	return s.Size(), nil
 }

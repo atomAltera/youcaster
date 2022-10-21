@@ -1,8 +1,10 @@
 package main
 
 import (
-	"context"
+	"github.com/atomAltera/youcaster/database"
 	"github.com/atomAltera/youcaster/logger"
+	"github.com/atomAltera/youcaster/telegram"
+	"github.com/atomAltera/youcaster/worker"
 	"github.com/atomAltera/youcaster/youtube"
 	"github.com/umputun/go-flags"
 	"os"
@@ -40,17 +42,50 @@ func main() {
 
 	log := logger.GetLogger(opts.Log)
 
-	ig, err := youtube.NewInfoGetter(opts.Google.APIKey, nil)
+	db, err := database.New(opts.Mongo.URI)
+	if err != nil {
+		log.Fatalf("failed to init database: %v", err)
+	}
+
+	yig, err := youtube.NewInfoGetter(
+		opts.Google.APIKey,
+		nil,
+	)
 	if err != nil {
 		log.Fatalf("failed to create youtube info getter: %v", err)
 	}
 
-	//_, err = ig.GetInfo(context.Background(), "https://www.youtube.com/watch?v=imTWnSBecZE")
-	vi, err := ig.GetInfo(context.Background(), "imTWnSBecZE")
-	//_, err = ig.GetInfo(context.Background(), "https://youtu.be/N8ubzqjRQgE")
+	ydl, err := youtube.NewDownloader(
+		log.WithField("module", "downloader"),
+		opts.DownloadPath,
+	)
 	if err != nil {
-		log.Fatalf("failed to get info: %v", err)
+		log.Fatalf("failed to create youtube downloader: %v", err)
 	}
 
-	log.Infof("video info: %+v", vi)
+	w := worker.NewWorker(
+		log.WithField("module", "worker"),
+		db.Requests,
+		yig,
+		ydl,
+	)
+
+	tg, err := telegram.NewTelegramClient(
+		log.WithField("module", "telegram"),
+		opts.Telegram.Token,
+		youtube.NewURLParser(),
+	)
+	if err != nil {
+		log.Fatalf("failed to create telegram client: %v", err)
+	}
+
+	rc := tg.ListenRequests(telegram.ListenConf{
+		RestrictToChatIDs: opts.Telegram.ChatIDs,
+	})
+
+	w.StartListenRequests(rc)
+
+	w.StartProcessingRequests()
+
+	// Create worker
 }
