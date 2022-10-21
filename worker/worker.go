@@ -122,6 +122,8 @@ func (w *Worker) processRequest(r e.Request) {
 }
 
 func (w *Worker) updateRequest(r e.Request) bool {
+	r.UpdatedAt = time.Now()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
 
@@ -134,7 +136,11 @@ func (w *Worker) updateRequest(r e.Request) bool {
 }
 
 func (w *Worker) processIncomingRequest(r e.Request) {
+	now := time.Now()
+
 	r.ID = w.generateID(r)
+	r.CreatedAt = now
+	r.UpdatedAt = now
 	r.Status = e.RequestStatusNew
 
 	l := w.log.WithFields(map[string]any{

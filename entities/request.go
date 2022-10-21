@@ -16,6 +16,7 @@ type Request struct {
 	Status RequestStatus `json:"status" bson:"status"`
 
 	CreatedAt time.Time `json:"created_at" bson:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`
 
 	YoutubeVideoID string `json:"youtube_video_id" bson:"youtube_video_id"`
 

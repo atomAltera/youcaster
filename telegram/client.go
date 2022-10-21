@@ -4,7 +4,6 @@ import (
 	e "github.com/atomAltera/youcaster/entities"
 	"github.com/atomAltera/youcaster/logger"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"time"
 )
 
 type ListenConf struct {
@@ -88,7 +87,6 @@ func (t *Telegram) ListenRequests(conf ListenConf) <-chan e.Request {
 			}
 
 			var r = e.Request{
-				CreatedAt:      time.Now(),
 				YoutubeVideoID: vid,
 				TgChatID:       u.Message.Chat.ID,
 				TgMessageID:    u.Message.MessageID,
