@@ -3,7 +3,7 @@ package feed
 import (
 	"fmt"
 	e "github.com/atomAltera/youcaster/entities"
-	"github.com/gorilla/feeds"
+	"github.com/eduncan911/podcast"
 	"time"
 )
 
@@ -14,15 +14,13 @@ type Builder struct {
 	AuthorEmail string
 	Copyright   string
 
-	PublicBaseURL  string
-	MainLogoPath   string
-	MainLogoWidth  int
-	MainLogoHeight int
+	PublicBaseURL string
+	MainLogoPath  string
 
 	FilePathPattern string
 }
 
-func (fb *Builder) BuildFeed(rs []e.Request) (string, error) {
+func (b *Builder) BuildFeed(rs []e.Request) (string, error) {
 	created := time.Now()
 	var updated time.Time
 	for _, r := range rs {
@@ -35,53 +33,52 @@ func (fb *Builder) BuildFeed(rs []e.Request) (string, error) {
 		}
 	}
 
-	feed := &feeds.Feed{
-		Title:       fb.Title,
-		Link:        &feeds.Link{Href: "https://youtube.com"}, // TODO: make configurable
-		Description: fb.Description,
-		Author:      &feeds.Author{Name: fb.AuthorName, Email: fb.AuthorEmail},
-		Updated:     updated,
-		Created:     created,
-		Id:          "",
-		Subtitle:    "",
-		Items:       nil,
-		Copyright:   fb.Copyright,
-		Image: &feeds.Image{
-			Title:  fb.Title,
-			Url:    fb.PublicBaseURL + fb.MainLogoPath,
-			Link:   fb.PublicBaseURL + fb.MainLogoPath,
-			Width:  fb.MainLogoWidth,
-			Height: fb.MainLogoHeight,
-		},
-	}
+	p := podcast.New(
+		b.Title,
+		"https://youtube.com",
+		b.Description,
+		&created,
+		&updated,
+	)
+
+	p.AddImage(b.PublicBaseURL + b.MainLogoPath)
+	p.AddAuthor(b.AuthorName, b.AuthorEmail)
 
 	for _, r := range rs {
-		feed.Add(&feeds.Item{
-			Title: r.VideoInfo.Title,
-			Link: &feeds.Link{
-				Href: "https://www.youtube.com/watch?v=" + r.YoutubeVideoID,
-			},
-			Source: &feeds.Link{
-				Href: "https://www.youtube.com/watch?v=" + r.YoutubeVideoID,
-			},
-			Author:      nil,
+		i := podcast.Item{
+			//XMLName:            xml.Name{},
+			GUID:        r.ID,
+			Title:       r.VideoInfo.Title,
+			Link:        "https://youtube.com/watch?v=" + r.YoutubeVideoID,
 			Description: r.VideoInfo.Description,
-			Id:          r.ID,
-			Updated:     r.UpdatedAt,
-			Created:     r.CreatedAt,
-			Enclosure: &feeds.Enclosure{
-				Url:    fb.PublicBaseURL + fmt.Sprintf(fb.FilePathPattern, r.FileName),
-				Length: fmt.Sprintf("%d", r.FileSize),
-				Type:   "audio/mpeg",
-			},
-			Content: r.VideoInfo.Description,
-		})
+			//Author:             nil,
+			//AuthorFormatted:    "",
+			//Category:           "",
+			//Comments:           "",
+			Source: "https://youtube.com/watch?v=" + r.YoutubeVideoID,
+			//PubDate:            nil,
+			//PubDateFormatted:   "",
+			//Enclosure:          nil,
+			//IAuthor:            "",
+			//ISubtitle:          "",
+			//ISummary:           nil,
+			//IImage:             nil,
+			//IDuration:          "",
+			//IExplicit:          "",
+			//IIsClosedCaptioned: "",
+			//IOrder:             "",
+		}
+
+		i.AddPubDate(&r.CreatedAt)
+		i.AddImage(r.VideoInfo.ThumbnailURL)
+		i.AddSummary(r.VideoInfo.Description)
+		//i.AddDuration(r.VideoInfo.Duration)
+		i.AddEnclosure(b.PublicBaseURL+fmt.Sprintf(b.FilePathPattern, r.FileName), podcast.MP3, r.FileSize)
+
+		if _, err := p.AddItem(i); err != nil {
+			return "", fmt.Errorf("failed to add item to podcast: %w", err)
+		}
 	}
 
-	xml, err := feed.ToRss()
-	if err != nil {
-		return "", fmt.Errorf("failed to build feed: %w", err)
-	}
-
-	return xml, err
+	return p.String(), nil
 }

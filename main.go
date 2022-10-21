@@ -98,10 +98,8 @@ func main() {
 		AuthorEmail: "atomaltera@gmail.com",
 		Copyright:   "",
 
-		PublicBaseURL:  opts.PublicBaseURL,
-		MainLogoPath:   "/logo.png",
-		MainLogoWidth:  320,
-		MainLogoHeight: 320,
+		PublicBaseURL: opts.PublicBaseURL,
+		MainLogoPath:  "/logo.png",
 
 		FilePathPattern: "/files/%s",
 	}

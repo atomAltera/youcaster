@@ -8,6 +8,7 @@ require (
 )
 
 require (
+	github.com/eduncan911/podcast v1.4.2 // indirect
 	github.com/go-chi/chi/v5 v5.0.7 // indirect
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
