@@ -72,8 +72,10 @@ func (b *Builder) BuildFeed(rs []e.Request) (string, error) {
 		i.AddPubDate(&r.CreatedAt)
 		i.AddImage(r.VideoInfo.ThumbnailURL)
 		i.AddSummary(r.VideoInfo.Description)
-		//i.AddDuration(r.VideoInfo.Duration)
 		i.AddEnclosure(b.PublicBaseURL+fmt.Sprintf(b.FilePathPattern, r.FileName), podcast.MP3, r.FileSize)
+		if r.VideoInfo.Duration > 0 {
+			i.AddDuration(int64(r.VideoInfo.Duration.Seconds()))
+		}
 
 		if _, err := p.AddItem(i); err != nil {
 			return "", fmt.Errorf("failed to add item to podcast: %w", err)

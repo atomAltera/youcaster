@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	durationParser "github.com/ChannelMeter/iso8601duration"
 	e "github.com/atomAltera/youcaster/entities"
 	"net/http"
 	"net/url"
@@ -34,7 +35,7 @@ func (i *InfoGetter) GetInfo(ctx context.Context, id string) (*e.VideoInfo, erro
 
 	q := pu.Query()
 	q.Set("key", i.apiKey)
-	q.Set("part", "snippet")
+	q.Set("part", "snippet,contentDetails")
 	q.Set("id", url.QueryEscape(id))
 	pu.RawQuery = q.Encode()
 	u := pu.String()
@@ -76,10 +77,20 @@ func (i *InfoGetter) GetInfo(ctx context.Context, id string) (*e.VideoInfo, erro
 		thumbnailURL = standardThumbnail.URL
 	}
 
+	var duration time.Duration
+	if item.ContentDetails.Duration != "" {
+		d, err := durationParser.FromString(item.ContentDetails.Duration)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse duration: %w", err)
+		}
+		duration = d.ToDuration()
+	}
+
 	return &e.VideoInfo{
 		PublishedAt:  publishedAt,
 		Title:        item.Snippet.Title,
 		Description:  item.Snippet.Description,
 		ThumbnailURL: thumbnailURL,
+		Duration:     duration,
 	}, nil
 }

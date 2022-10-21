@@ -11,8 +11,9 @@ type VideoListResponse struct {
 }
 
 type Item struct {
-	ID      string  `json:"id"`
-	Snippet Snippet `json:"snippet"`
+	ID             string         `json:"id"`
+	Snippet        Snippet        `json:"snippet"`
+	ContentDetails ContentDetails `json:"contentDetails"`
 }
 
 type Snippet struct {
@@ -26,4 +27,8 @@ type Thumbnail struct {
 	URL    string `json:"url"`
 	Width  int    `json:"width"`
 	Height int    `json:"height"`
+}
+
+type ContentDetails struct {
+	Duration string `json:"duration"`
 }
