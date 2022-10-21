@@ -39,6 +39,21 @@ func (t *Telegram) ListenRequests(conf ListenConf) <-chan e.Request {
 
 	go func() {
 		for u := range updates {
+			if u.Message == nil {
+				t.log.Warn("Received update without message")
+				continue
+			}
+
+			if u.Message.Chat == nil {
+				t.log.Warn("Received update without chat")
+				continue
+			}
+
+			if u.Message.From == nil {
+				t.log.Warn("Received update without from")
+				continue
+			}
+
 			l := t.log.WithFields(map[string]interface{}{
 				"chat_id":       u.Message.Chat.ID,
 				"message_id":    u.Message.MessageID,

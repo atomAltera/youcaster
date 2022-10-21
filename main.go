@@ -2,8 +2,11 @@ package main
 
 import (
 	"github.com/atomAltera/youcaster/database"
+	"github.com/atomAltera/youcaster/feed"
 	"github.com/atomAltera/youcaster/logger"
+	"github.com/atomAltera/youcaster/storage"
 	"github.com/atomAltera/youcaster/telegram"
+	"github.com/atomAltera/youcaster/web"
 	"github.com/atomAltera/youcaster/worker"
 	"github.com/atomAltera/youcaster/youtube"
 	"github.com/umputun/go-flags"
@@ -42,6 +45,11 @@ func main() {
 
 	log := logger.GetLogger(opts.Log)
 
+	fs, err := storage.NewFileStorage(opts.DownloadPath)
+	if err != nil {
+		log.Fatalf("failed to create file storage: %v", err)
+	}
+
 	db, err := database.New(opts.Mongo.URI)
 	if err != nil {
 		log.Fatalf("failed to init database: %v", err)
@@ -55,13 +63,10 @@ func main() {
 		log.Fatalf("failed to create youtube info getter: %v", err)
 	}
 
-	ydl, err := youtube.NewDownloader(
+	ydl := youtube.NewDownloader(
 		log.WithField("module", "downloader"),
 		opts.DownloadPath,
 	)
-	if err != nil {
-		log.Fatalf("failed to create youtube downloader: %v", err)
-	}
 
 	w := worker.NewWorker(
 		log.WithField("module", "worker"),
@@ -84,8 +89,34 @@ func main() {
 	})
 
 	w.StartListenRequests(rc)
-
 	w.StartProcessingRequests()
 
-	// Create worker
+	fb := &feed.Builder{
+		Title:       "Youcaster",
+		Description: "Audios from youtube on demand",
+		AuthorName:  "Konstantin Alikhanov",
+		AuthorEmail: "atomaltera@gmail.com",
+		Copyright:   "",
+
+		PublicBaseURL:  opts.PublicBaseURL,
+		MainLogoPath:   "/logo.png",
+		MainLogoWidth:  320,
+		MainLogoHeight: 320,
+
+		FilePathPattern: "/files/%s",
+	}
+
+	s := web.NewServer(
+		log.WithField("module", "web"),
+		db.Requests,
+		fs,
+		fb,
+	)
+
+	log.Infof("starting server at http://%s/feed", opts.Web.Addr)
+
+	err = s.Listen(opts.Web.Addr)
+	if err != nil {
+		log.Fatalf("starting server: %v", err)
+	}
 }
