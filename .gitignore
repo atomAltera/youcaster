@@ -4,3 +4,4 @@
 tmp
 *.private.env.json
 Makefile
+.env
