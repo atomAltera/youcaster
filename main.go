@@ -102,6 +102,7 @@ func main() {
 		MainLogoPath:  "/logo.png",
 
 		FilePathPattern: "/files/%s",
+		URLBuilder:      youtube.NewURLBuilder(),
 	}
 
 	s := web.NewServer(

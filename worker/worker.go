@@ -100,8 +100,7 @@ func (w *Worker) processRequest(r e.Request) {
 	ctx, cancel = context.WithTimeout(context.Background(), 1*time.Hour)
 	defer cancel()
 
-	ytUrl := "https://www.youtube.com/watch?v=" + r.YoutubeVideoID
-	fileSize, err := w.downloader.Download(ctx, ytUrl, r.FileName)
+	fileSize, err := w.downloader.Download(ctx, r.YoutubeVideoID, r.FileName)
 	if err != nil {
 		w.log.WithError(err).Error("failed to download video")
 

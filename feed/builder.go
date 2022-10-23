@@ -18,6 +18,7 @@ type Builder struct {
 	MainLogoPath  string
 
 	FilePathPattern string
+	URLBuilder      URLBuilder
 }
 
 func (b *Builder) BuildFeed(rs []e.Request) (string, error) {
@@ -45,17 +46,19 @@ func (b *Builder) BuildFeed(rs []e.Request) (string, error) {
 	p.AddAuthor(b.AuthorName, b.AuthorEmail)
 
 	for _, r := range rs {
+		videoURL := b.URLBuilder.BuildVideoURL(r.YoutubeVideoID)
+
 		i := podcast.Item{
 			//XMLName:            xml.Name{},
 			GUID:        r.ID,
 			Title:       r.VideoInfo.Title,
-			Link:        "https://youtube.com/watch?v=" + r.YoutubeVideoID,
+			Link:        videoURL,
 			Description: r.VideoInfo.Description,
 			//Author:             nil,
 			//AuthorFormatted:    "",
 			//Category:           "",
 			//Comments:           "",
-			Source: "https://youtube.com/watch?v=" + r.YoutubeVideoID,
+			Source: videoURL,
 			//PubDate:            nil,
 			//PubDateFormatted:   "",
 			//Enclosure:          nil,

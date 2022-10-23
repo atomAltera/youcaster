@@ -12,20 +12,23 @@ import (
 const ytDlpTemplate = `yt-dlp --extract-audio --audio-format=mp3 --audio-quality=0 -f m4a/bestaudio "%s" --no-progress -o "%s"`
 
 type Downloader struct {
-	log logger.Logger
-	dir string
+	log     logger.Logger
+	dir     string
+	builder *URLBuilder
 }
 
 func NewDownloader(l logger.Logger, dir string) *Downloader {
 	return &Downloader{
-		log: l,
-		dir: dir,
+		log:     l,
+		dir:     dir,
+		builder: NewURLBuilder(),
 	}
 }
 
-func (d *Downloader) Download(ctx context.Context, url string, filename string) (int64, error) {
+func (d *Downloader) Download(ctx context.Context, id string, filename string) (int64, error) {
 	dest := path.Join(d.dir, filename)
 
+	url := d.builder.BuildVideoURL(id)
 	script := fmt.Sprintf(ytDlpTemplate, url, dest)
 
 	cmd := exec.CommandContext(ctx, "sh", "-c", script)

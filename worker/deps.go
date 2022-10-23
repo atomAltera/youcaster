@@ -10,7 +10,7 @@ type InfoGetter interface {
 }
 
 type Downloader interface {
-	Download(ctx context.Context, url string, filename string) (int64, error)
+	Download(ctx context.Context, id string, filename string) (int64, error)
 }
 
 type RequestsStore interface {
