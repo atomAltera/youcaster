@@ -4,6 +4,7 @@ import (
 	"context"
 	e "github.com/atomAltera/youcaster/entities"
 	"github.com/atomAltera/youcaster/logger"
+	"math"
 	"time"
 )
 
@@ -40,7 +41,7 @@ func (w *Worker) StartProcessingRequests() {
 func (w *Worker) processingLoop() {
 	for {
 		w.processingCycle()
-		time.Sleep(1 * time.Second)
+		time.Sleep(10 * time.Second)
 	}
 }
 
@@ -65,6 +66,13 @@ func (w *Worker) processingCycle() {
 }
 
 func (w *Worker) processRequest(r e.Request) {
+	if r.Attempts > 0 {
+		wait := time.Duration(math.Pow(5, float64(r.Attempts))) * time.Second
+		if time.Since(r.UpdatedAt) < wait {
+			return
+		}
+	}
+
 	if r.Status == e.RequestStatusNew {
 		r.Status = e.RequestStatusDownloading
 		if ok := w.updateRequest(r); !ok {
@@ -72,12 +80,19 @@ func (w *Worker) processRequest(r e.Request) {
 		}
 	}
 
+	l := w.log.WithFields(map[string]any{
+		"attempt":          r.Attempts + 1,
+		"id":               r.ID,
+		"youtube_video_id": r.YoutubeVideoID,
+	})
+
+	l.Info("getting video info")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	info, err := w.infoGetter.GetInfo(ctx, r.YoutubeVideoID)
 	if err != nil {
-		w.log.WithError(err).Error("failed to get youtube video info")
+		l.WithError(err).Error("failed to get youtube video info")
 
 		r.Attempts += 1
 		r.Status = e.RequestStatusNew
@@ -90,6 +105,7 @@ func (w *Worker) processRequest(r e.Request) {
 	}
 
 	r.VideoInfo = info
+	l.SetField("duration", info.Duration)
 
 	if ok := w.updateRequest(r); !ok {
 		return
@@ -97,15 +113,19 @@ func (w *Worker) processRequest(r e.Request) {
 
 	r.FileName = w.generateFileName(r)
 
+	l.Info("downloading video")
 	ctx, cancel = context.WithTimeout(context.Background(), 1*time.Hour)
 	defer cancel()
 
 	fileSize, err := w.downloader.Download(ctx, r.YoutubeVideoID, r.FileName)
 	if err != nil {
-		w.log.WithError(err).Error("failed to download video")
-
 		r.Attempts += 1
+
+		l.WithError(err).Error("failed to download video")
+
 		r.Status = e.RequestStatusNew
+		r.LastAttemptAt = time.Now()
+
 		if r.Attempts > maxRetries {
 			r.Status = e.RequestStatusFailed
 		}
@@ -117,7 +137,13 @@ func (w *Worker) processRequest(r e.Request) {
 	r.FileSize = fileSize
 	r.Status = e.RequestStatusDone
 
-	w.updateRequest(r)
+	l.SetField("file_size", fileSize)
+
+	if ok := w.updateRequest(r); !ok {
+		return
+	}
+
+	l.Info("video downloaded")
 }
 
 func (w *Worker) updateRequest(r e.Request) bool {

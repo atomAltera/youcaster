@@ -23,7 +23,8 @@ type Request struct {
 	TgChatID    int64 `json:"tg_chat_id" bson:"tg_chat_id"`
 	TgMessageID int   `json:"tg_message_id" bson:"tg_message_id"`
 
-	Attempts int `json:"attempts" bson:"attempts"`
+	Attempts      int       `json:"attempts" bson:"attempts"`
+	LastAttemptAt time.Time `json:"last_attempt_at" bson:"last_attempt_at"`
 
 	VideoInfo *VideoInfo `json:"video_info" bson:"video_info"`
 	FileName  string     `json:"file_name" bson:"file_name"`
