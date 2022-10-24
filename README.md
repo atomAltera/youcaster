@@ -1,11 +1,17 @@
 # Youcaster
 
-Youcaster is a simple tool to create a podcast episodes from a YouTube videos.
+Youcaster is a simple tool for creating a podcast episodes feed from YouTube videos.
+
+Uses telegram bot as an interface. 
+Send a message with link to the video to the telegram bot and wait while it will be
+downloaded and added to podcast feed.
 
 ## Usage
 
 First register telegram bot and get the token.
-Also, you need to generate a Google API key with access to YouTube Data API (used to fetch video details like description, duration etc.)
+
+Also, you need to generate a Google API key with access to YouTube Data API 
+(needed to fetch video details like description, duration etc.)
 
 You can restrict access to bot by setting `TELEGRAM_CHATS` env var. To get your chat ID, use [userinfobot](https://t.me/userinfobot)
 
