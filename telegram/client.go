@@ -98,3 +98,14 @@ func (t *Telegram) ListenRequests(conf ListenConf) <-chan e.Request {
 
 	return rc
 }
+
+func (t *Telegram) ProcessFailed(fr e.FailedRequest) {
+	msg := tgbotapi.NewMessage(fr.Request.TgChatID, "Failed to process your request:\n<code>"+fr.Error.Error()+"</code>")
+	msg.ReplyToMessageID = fr.Request.TgMessageID
+	msg.ParseMode = tgbotapi.ModeHTML
+
+	_, err := t.bot.Send(msg)
+	if err != nil {
+		t.log.WithError(err).Error("failed to send failed message")
+	}
+}

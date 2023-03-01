@@ -44,6 +44,7 @@ func main() {
 	}
 
 	log := logger.GetLogger(opts.Log)
+	log.Infof("starting")
 
 	fs, err := storage.NewFileStorage(opts.DownloadPath)
 	if err != nil {
@@ -89,7 +90,13 @@ func main() {
 	})
 
 	w.StartListenRequests(rc)
-	w.StartProcessingRequests()
+	frc := w.StartProcessingRequests()
+
+	go func() {
+		for fr := range frc {
+			tg.ProcessFailed(fr)
+		}
+	}()
 
 	fb := &feed.Builder{
 		Title:       "Youcaster",

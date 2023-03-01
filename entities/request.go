@@ -30,3 +30,8 @@ type Request struct {
 	FileName  string     `json:"file_name" bson:"file_name"`
 	FileSize  int64      `json:"file_size" bson:"file_size"`
 }
+
+type FailedRequest struct {
+	Request
+	Error error
+}

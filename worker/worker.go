@@ -8,21 +8,24 @@ import (
 	"time"
 )
 
-const maxRetries = 5
+const maxRetries = 3
 
 type Worker struct {
 	log        logger.Logger
 	storage    RequestsStore
 	infoGetter InfoGetter
 	downloader Downloader
+
+	failedRequestsChan chan e.FailedRequest
 }
 
 func NewWorker(l logger.Logger, s RequestsStore, ig InfoGetter, dl Downloader) *Worker {
 	return &Worker{
-		log:        l,
-		storage:    s,
-		infoGetter: ig,
-		downloader: dl,
+		log:                l,
+		storage:            s,
+		infoGetter:         ig,
+		downloader:         dl,
+		failedRequestsChan: make(chan e.FailedRequest, 100),
 	}
 }
 
@@ -34,8 +37,9 @@ func (w *Worker) StartListenRequests(rc <-chan e.Request) {
 	}()
 }
 
-func (w *Worker) StartProcessingRequests() {
+func (w *Worker) StartProcessingRequests() <-chan e.FailedRequest {
 	go w.processingLoop()
+	return w.failedRequestsChan
 }
 
 func (w *Worker) processingLoop() {
@@ -93,10 +97,11 @@ func (w *Worker) processRequest(r e.Request) {
 	info, err := w.infoGetter.GetInfo(ctx, r.YoutubeVideoID)
 	if err != nil {
 		l.WithError(err).Error("failed to get youtube video info")
+		w.requestFiled(r, err)
 
 		r.Attempts += 1
 		r.Status = e.RequestStatusNew
-		if r.Attempts > maxRetries {
+		if r.Attempts >= maxRetries {
 			r.Status = e.RequestStatusFailed
 		}
 
@@ -128,6 +133,7 @@ func (w *Worker) processRequest(r e.Request) {
 
 		if r.Attempts > maxRetries {
 			r.Status = e.RequestStatusFailed
+			w.requestFiled(r, err)
 		}
 
 		w.updateRequest(r)
@@ -154,6 +160,7 @@ func (w *Worker) updateRequest(r e.Request) bool {
 
 	if err := w.storage.Update(ctx, r); err != nil {
 		w.log.WithError(err).Error("failed to update request")
+		w.requestFiled(r, err)
 		return false
 	}
 
@@ -182,6 +189,7 @@ func (w *Worker) processIncomingRequest(r e.Request) {
 	err := w.storage.Create(ctx, r)
 	if err != nil {
 		l.WithError(err).Error("failed to save requests")
+		w.requestFiled(r, err)
 	}
 }
 
@@ -191,4 +199,16 @@ func (w *Worker) generateID(r e.Request) string {
 
 func (w *Worker) generateFileName(r e.Request) string {
 	return "ytb_" + r.YoutubeVideoID + ".mp3"
+}
+
+func (w *Worker) requestFiled(r e.Request, err error) {
+	select {
+	case w.failedRequestsChan <- e.FailedRequest{
+		Request: r,
+		Error:   err,
+	}:
+		break
+	default:
+		w.log.Error("failed requests chan is full")
+	}
 }
